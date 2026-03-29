@@ -10,16 +10,6 @@ Additionally, an **interactive web application** is built using **Streamlit** to
 
 ---
 
-## 🎯 Objectives
-
-* Detect fraudulent transactions from large-scale financial data
-* Handle extreme class imbalance
-* Apply clustering techniques to identify anomalies
-* Perform feature selection and dimensionality reduction
-* Build an interactive dashboard for real-time insights
-
----
-
 ## 📥 Dataset Download
 
 Due to GitHub file size limitations, the dataset is not included in this repository.
@@ -39,6 +29,16 @@ https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
   * `1` → Fraudulent Transaction
 
 ⚠️ **Note:** Dataset is highly imbalanced with very few fraud cases.
+
+---
+
+## 🎯 Objectives
+
+* Detect fraudulent transactions from large-scale financial data
+* Handle extreme class imbalance
+* Apply clustering techniques to identify anomalies
+* Perform feature selection and dimensionality reduction
+* Build an interactive dashboard for real-time insights
 
 ---
 
