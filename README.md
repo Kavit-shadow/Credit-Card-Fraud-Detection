@@ -210,10 +210,12 @@ Dataset sourced from Kaggle (Credit Card Fraud Detection dataset).
 
 ---
 
-## 📬 Contact
+## 📞 Contact
 
-* Name: [Your Name]
-* LinkedIn: [Your LinkedIn]
-* Email: [Your Email]
+**Kavit Patel**  
+📧 Email: [Contact by mail](mailto:kavitpatel1574.kp@gmail.com)  
+🔗 GitHub: [Kavit-shadow](https://github.com/Kavit-shadow)  
+💼 LinkedIn: [My Linkedin Profile](https://www.linkedin.com/in/kavit-patel-84597a26b?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app)
+📍 Location: Ahmedabad, Gujarat
 
 ---
