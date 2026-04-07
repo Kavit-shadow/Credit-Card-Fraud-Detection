@@ -261,35 +261,35 @@ inject_css()
 
 # ── MODEL ─────────────────────────────────────────────────────────────────────
 @st.cache_resource
-def build_ensemble_model():
-    np.random.seed(42)
-    N = 6000; nf = int(N * 0.02); rows = []
-    for _ in range(N - nf):
-        v = np.random.normal(0, 1, 28)
-        rows.append(list(v) + [np.random.uniform(0, 172800), np.random.exponential(80), 0])
-    for _ in range(nf):
-        v = np.random.normal(0, 2, 28); v[0] -= 3; v[2] -= 2
-        rows.append(list(v) + [np.random.uniform(0, 172800), np.random.exponential(20), 1])
-    df_t = pd.DataFrame(rows, columns=MODEL_FEATURES + ['Class'])
-    X, y = df_t[MODEL_FEATURES].values, df_t['Class'].values
-    rf  = RandomForestClassifier(n_estimators=100, max_depth=10, min_samples_leaf=2,
-                                  class_weight='balanced', random_state=42, n_jobs=-1)
-    gb  = GradientBoostingClassifier(n_estimators=80, max_depth=4, learning_rate=0.1, random_state=42)
-    ens = VotingClassifier(estimators=[('rf', rf), ('gb', gb)], voting='soft', weights=[2, 1])
-    ens.fit(X, y)
-    return ens, MODEL_FEATURES
-
-@st.cache_resource
 def load_model():
     try:
-        with open("creditcard.pkl", "rb") as f: mdl = pickle.load(f)
-        feat = list(mdl.feature_names_in_) if hasattr(mdl, 'feature_names_in_') else MODEL_FEATURES
-        return mdl, "pkl", feat
-    except:
-        mdl, feat = build_ensemble_model()
-        return mdl, "ensemble", feat
+        with open("creditcard.pkl", "rb") as f:
+            model = pickle.load(f)
 
-model, model_source, TRAINED_FEATURES = load_model()
+        if hasattr(model, "feature_names_in_"):
+            features = list(model.feature_names_in_)
+        else:
+            features = MODEL_FEATURES
+
+        return model, features
+
+    except Exception:
+        st.error("❌ creditcard.pkl not found!")
+        st.stop()
+
+model, TRAINED_FEATURES = load_model()
+model_source = "trained"
+
+@st.cache_resource
+def load_scaler():
+    try:
+        with open("scaler.pkl", "rb") as f:
+            return pickle.load(f)
+    except:
+        st.error("❌ scaler.pkl not found!")
+        st.stop()
+
+scaler = load_scaler()
 
 # ── PREPROCESSING ─────────────────────────────────────────────────────────────
 import re as _re
@@ -303,23 +303,28 @@ def _coerce(val):
     except: return np.nan
 
 def clean_dataset(df):
-    df = df.copy(); df.columns = df.columns.str.strip()
+    df = df.copy()
+    df.columns = df.columns.str.strip()
+
+    # ✅ Use TRAINED scaler
     if 'Amount' in df.columns and 'scaled_amount' not in df.columns:
-        sc = StandardScaler()
-        df['scaled_amount'] = sc.fit_transform(df[['Amount']])
+        df['scaled_amount'] = scaler.transform(df[['Amount']])
         df = df.drop(columns=['Amount'], errors='ignore')
+
     df = df.drop(columns=['Class'], errors='ignore')
+
     missing = [f for f in TRAINED_FEATURES if f not in df.columns]
     if missing:
-        st.error(f"Missing columns: {missing}. File must contain V1-V28, Time, scaled_amount (or Amount).")
+        st.error(f"Missing columns: {missing}")
         st.stop()
+
     df = df[TRAINED_FEATURES]
-    for col in TRAINED_FEATURES: df[col] = df[col].apply(_coerce)
-    df = df.dropna(how='all')
-    for col in TRAINED_FEATURES:
-        q1, q3 = df[col].quantile(0.25), df[col].quantile(0.75)
-        df[col] = df[col].clip(lower=q1 - 3*(q3-q1), upper=q3 + 3*(q3-q1))
-    return df.fillna(df.median())
+
+    # Convert safely
+    df = df.apply(pd.to_numeric, errors='coerce')
+    df = df.fillna(df.median())
+
+    return df
 
 # ── KPI helper — uses custom CSS classes, NOT h2/h4 tags ─────────────────────
 def kpi(label, value, color=None):
@@ -499,8 +504,9 @@ if st.session_state.page == "bulk":
         if st.button("🚀 Run Fraud Detection", use_container_width=True):
             with st.spinner("Running detection model..."):
                 X     = clean_dataset(st.session_state.uploaded_df)
-                preds = model.predict(X.values)
-                probs = model.predict_proba(X.values)[:, 1]
+                probs = model.predict_proba(X)[:, 1]
+                threshold = np.percentile(probs, 70)
+                preds = (probs >= threshold).astype(int)
                 res = pd.DataFrame({
                     'Time':                  X['Time'].values,
                     'Scaled Amount':         X['scaled_amount'].values.round(4),
